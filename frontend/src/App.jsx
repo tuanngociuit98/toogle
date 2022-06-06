@@ -1,91 +1,249 @@
-import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { LinkContainer } from "react-router-bootstrap";
-import { useContext } from "react";
-import { Store } from "./Store";
-
-import HomeScreen from "./screens/HomeScreen";
-import ProductScreen from "./screens/ProductScreen";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { BrowserRouter, Link, Route } from "react-router-dom";
+import { signout } from "./actions/userActions";
+import AdminRoute from "./components/AdminRoute";
+import PrivateRoute from "./components/PrivateRoute";
 import CartScreen from "./screens/CartScreen";
-import SigninScreen from "./screens/SigninScreen";
+import HomeScreen from "./screens/HomeScreen";
+import OrderHistoryScreen from "./screens/OrderHistoryScreen";
+import OrderScreen from "./screens/OrderScreen";
+import PaymentMethodScreen from "./screens/PaymentMethodScreen";
+import PlaceOrderScreen from "./screens/PlaceOrderScreen";
+import ProductListScreen from "./screens/ProductListScreen";
+import ProductScreen from "./screens/ProductScreen";
+import ProfileScreen from "./screens/ProfileScreen";
+import RegisterScreen from "./screens/RegisterScreen";
 import ShippingAddressScreen from "./screens/ShippingAddressScreen";
-import SignupScreen from "./screens/SignupScreen";
+import SigninScreen from "./screens/SigninScreen";
+import ProductEditScreen from "./screens/ProductEditScreen";
+import OrderListScreen from "./screens/OrderListScreen";
+import UserListScreen from "./screens/UserListScreen";
+import UserEditScreen from "./screens/UserEditScreen";
+import SellerScreen from "./screens/SellerScreen";
+import SellerRoute from "./components/SellerRoute";
+import DashboardScreen from "./screens/DashboardScreen";
+import SearchScreen from "./screens/SearchScreen";
+import SearchBox from "./components/SearchBox";
+import { listProductCategories } from "./actions/productActions";
+import LoadingBox from "./components/LoadingBox";
+import MessageBox from "./components/MessageBox";
 
-import Navbar from "react-bootstrap/Navbar";
-import Badge from "react-bootstrap/Badge";
-import Nav from "react-bootstrap/Nav";
-import Container from "react-bootstrap/Container";
-import NavDropdown from "react-bootstrap/NavDropdown";
 function App() {
-  const { state, dispatch: ctxDispatch } = useContext(Store);
-  const { cart, userInfo } = state;
-
+  const cart = useSelector((state) => state.cart);
+  const [sidebarIsOpen, setSidebarIsOpen] = useState(false);
+  const { cartItems } = cart;
+  const userSignin = useSelector((state) => state.userSignin);
+  const { userInfo } = userSignin;
+  const dispatch = useDispatch();
   const signoutHandler = () => {
-    ctxDispatch({ type: "USER_SIGNOUT" });
-    localStorage.removeItem("userInfo");
-    localStorage.removeItem("shippingAddress");
+    dispatch(signout());
   };
+  const productCategoryList = useSelector((state) => state.productCategoryList);
+  const {
+    loading: loadingCategories,
+    error: errorCategories,
+    categories,
+  } = productCategoryList;
+  useEffect(() => {
+    dispatch(listProductCategories());
+  }, [dispatch]);
   return (
     <BrowserRouter>
-      <div className="d-flex flex-column site-container">
-        <ToastContainer position="bottom-center" limit={1} />
-        <header>
-          <Navbar bg="dark" variant="dark">
-            <Container>
-              <LinkContainer to="/">
-                <Navbar.Brand>Toogle</Navbar.Brand>
-              </LinkContainer>
-              <Nav className="me-auto">
-                <Link to="/cart" className="nav-link">
-                  Cart
-                  {cart.cartItems.length > 0 && (
-                    <Badge pill bg="danger">
-                      {cart.cartItems.reduce((a, c) => a + c.quantity, 0)}
-                    </Badge>
-                  )}
+      <div className="grid-container">
+        <header className="row">
+          <div>
+            <button
+              type="button"
+              className="open-sidebar"
+              onClick={() => setSidebarIsOpen(true)}
+            >
+              <i className="fa fa-bars"></i>
+            </button>
+            <Link className="brand" to="/">
+              amazona
+            </Link>
+          </div>
+          <div>
+            <Route
+              render={({ history }) => (
+                <SearchBox history={history}></SearchBox>
+              )}
+            ></Route>
+          </div>
+          <div>
+            <Link to="/cart">
+              Cart
+              {cartItems.length > 0 && (
+                <span className="badge">{cartItems.length}</span>
+              )}
+            </Link>
+            {userInfo ? (
+              <div className="dropdown">
+                <Link to="#">
+                  {userInfo.name} <i className="fa fa-caret-down"></i>{" "}
                 </Link>
-                {userInfo ? (
-                  <NavDropdown title={userInfo.name} id="basic-nav-dropdown">
-                    <LinkContainer to="/profile">
-                      <NavDropdown.Item>User Profile</NavDropdown.Item>
-                    </LinkContainer>
-                    <LinkContainer to="/orderhistory">
-                      <NavDropdown.Item>Order History</NavDropdown.Item>
-                    </LinkContainer>
-                    <NavDropdown.Divider />
-                    <Link
-                      className="dropdown-item"
-                      to="#signout"
-                      onClick={signoutHandler}
-                    >
+                <ul className="dropdown-content">
+                  <li>
+                    <Link to="/profile">User Profile</Link>
+                  </li>
+                  <li>
+                    <Link to="/orderhistory">Order History</Link>
+                  </li>
+                  <li>
+                    <Link to="#signout" onClick={signoutHandler}>
                       Sign Out
                     </Link>
-                  </NavDropdown>
-                ) : (
-                  <Link className="nav-link" to="/signin">
-                    Sign In
-                  </Link>
-                )}
-              </Nav>
-            </Container>
-          </Navbar>
+                  </li>
+                </ul>
+              </div>
+            ) : (
+              <Link to="/signin">Sign In</Link>
+            )}
+            {userInfo && userInfo.isSeller && (
+              <div className="dropdown">
+                <Link to="#admin">
+                  Seller <i className="fa fa-caret-down"></i>
+                </Link>
+                <ul className="dropdown-content">
+                  <li>
+                    <Link to="/productlist/seller">Products</Link>
+                  </li>
+                  <li>
+                    <Link to="/orderlist/seller">Orders</Link>
+                  </li>
+                </ul>
+              </div>
+            )}
+            {userInfo && userInfo.isAdmin && (
+              <div className="dropdown">
+                <Link to="#admin">
+                  Admin <i className="fa fa-caret-down"></i>
+                </Link>
+                <ul className="dropdown-content">
+                  <li>
+                    <Link to="/dashboard">Dashboard</Link>
+                  </li>
+                  <li>
+                    <Link to="/productlist">Products</Link>
+                  </li>
+                  <li>
+                    <Link to="/orderlist">Orders</Link>
+                  </li>
+                  <li>
+                    <Link to="/userlist">Users</Link>
+                  </li>
+                </ul>
+              </div>
+            )}
+          </div>
         </header>
+        <aside className={sidebarIsOpen ? "open" : ""}>
+          <ul className="categories">
+            <li>
+              <strong>Categories</strong>
+              <button
+                onClick={() => setSidebarIsOpen(false)}
+                className="close-sidebar"
+                type="button"
+              >
+                <i className="fa fa-close"></i>
+              </button>
+            </li>
+            {loadingCategories ? (
+              <LoadingBox></LoadingBox>
+            ) : errorCategories ? (
+              <MessageBox variant="danger">{errorCategories}</MessageBox>
+            ) : (
+              categories.map((c) => (
+                <li key={c}>
+                  <Link
+                    to={`/search/category/${c}`}
+                    onClick={() => setSidebarIsOpen(false)}
+                  >
+                    {c}
+                  </Link>
+                </li>
+              ))
+            )}
+          </ul>
+        </aside>
         <main>
-          <Container className="mt-3">
-            <Routes>
-              <Route path="/" element={<HomeScreen />} />
-              <Route path="/product/:slug" element={<ProductScreen />} />
-              <Route path="/cart" element={<CartScreen />} />
-              <Route path="/signin" element={<SigninScreen />} />
-              <Route path="/signup" element={<SignupScreen />} />
-              <Route
-                path="/shipping"
-                element={<ShippingAddressScreen />}
-              ></Route>
-            </Routes>
-          </Container>
+          <Route path="/seller/:id" component={SellerScreen}></Route>
+          <Route path="/cart/:id?" component={CartScreen}></Route>
+          <Route path="/product/:id" component={ProductScreen} exact></Route>
+          <Route
+            path="/product/:id/edit"
+            component={ProductEditScreen}
+            exact
+          ></Route>
+          <Route path="/signin" component={SigninScreen}></Route>
+          <Route path="/register" component={RegisterScreen}></Route>
+          <Route path="/shipping" component={ShippingAddressScreen}></Route>
+          <Route path="/payment" component={PaymentMethodScreen}></Route>
+          <Route path="/placeorder" component={PlaceOrderScreen}></Route>
+          <Route path="/order/:id" component={OrderScreen}></Route>
+          <Route path="/orderhistory" component={OrderHistoryScreen}></Route>
+          <Route
+            path="/search/name/:name?"
+            component={SearchScreen}
+            exact
+          ></Route>
+          <Route
+            path="/search/category/:category"
+            component={SearchScreen}
+            exact
+          ></Route>
+          <Route
+            path="/search/category/:category/name/:name"
+            component={SearchScreen}
+            exact
+          ></Route>
+          <Route
+            path="/search/category/:category/name/:name/min/:min/max/:max/rating/:rating/order/:order/pageNumber/:pageNumber"
+            component={SearchScreen}
+            exact
+          ></Route>
+          <PrivateRoute
+            path="/profile"
+            component={ProfileScreen}
+          ></PrivateRoute>
+          <AdminRoute
+            path="/productlist"
+            component={ProductListScreen}
+            exact
+          ></AdminRoute>
+          <AdminRoute
+            path="/orderlist"
+            component={OrderListScreen}
+            exact
+          ></AdminRoute>
+          <AdminRoute
+            path="/productlist/pageNumber/:pageNumber"
+            component={ProductListScreen}
+            exact
+          ></AdminRoute>
+          <AdminRoute path="/userlist" component={UserListScreen}></AdminRoute>
+          <AdminRoute
+            path="/user/:id/edit"
+            component={UserEditScreen}
+          ></AdminRoute>
+
+          <AdminRoute
+            path="/dashboard"
+            component={DashboardScreen}
+          ></AdminRoute>
+          <SellerRoute
+            path="/productlist/seller"
+            component={ProductListScreen}
+          ></SellerRoute>
+          <SellerRoute
+            path="/orderlist/seller"
+            component={OrderListScreen}
+          ></SellerRoute>
+          <Route path="/" component={HomeScreen} exact></Route>
         </main>
+        <footer className="row center">All right reserved</footer>
       </div>
     </BrowserRouter>
   );
